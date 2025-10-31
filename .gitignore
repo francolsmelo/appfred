@@ -1,0 +1,25 @@
+# Entorno virtual
+venv/
+
+# Variables de entorno
+.env
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Archivos de logs y bases de datos temporales
+*.log
+*.sqlite3
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración de editor
+.vscode/
+.idea/
+
+# Archivos de despliegue que no quieras versionar (opcional)
+# render.yaml
