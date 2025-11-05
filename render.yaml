@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 services:
   - type: web
     name: appfred
@@ -8,4 +9,16 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: ASSISTANT_ID
+=======
+services:
+  - type: web
+    name: appfred
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ASSISTANT_ID
+>>>>>>> aaa090a72063f2df24c6e2b0bca1128a77da0f20
         sync: false
