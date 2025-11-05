@@ -1,0 +1,10 @@
+name: appfred
+description: Asistente de moda con IA que genera imágenes a partir de fotos y texto vía Telegram
+entrypoint: main:app
+runtime: python
+dependencies:
+  - fastapi
+  - openai
+  - python-telegram-bot
+  - python-dotenv
+  - requests
