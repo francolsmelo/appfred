@@ -1,39 +1,59 @@
-<<<<<<< HEAD
+# utils/openai_helper.py
 import openai
 import base64
+import os
+from fastapi import UploadFile
+from io import BytesIO
 
-async def generate_fashion_image(file, clothing_type):
+client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+async def generate_fashion_image(file: UploadFile, clothing_type: str):
+    """Versión mejorada con prompt potente para preservación de rostro"""
+    
+    # Leer la imagen
     image_bytes = await file.read()
-    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+    base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
-    prompt = f"Genera una imagen de una persona con el rostro proporcionado vistiendo un {clothing_type}."
+    # Prompt ULTRA POTENTE (esto es lo que realmente mejora la calidad)
+    prompt = f"""
+Eres un experto mundial en virtual fashion try-on y fotografía de alta moda.
 
-    response = openai.images.generate(
-        model="gpt-image-1",
-        prompt=prompt,
-        image=encoded_image,
-        size="1024x1024"
-    )
+**REFERENCIA OBLIGATORIA (mantener 100% fiel):**
+- Rostro, ojos, expresión, tono de piel, textura de piel, pelo, forma de la cara y pose deben ser **idénticos** a la foto original.
+- No cambies proporciones del cuerpo, edad ni iluminación general.
 
-    image_base64 = response.data[0].b64_json
-    return {"image": image_base64}
-=======
-import openai
-import base64
+**TAREA:**
+Cambia SOLO la ropa por: {clothing_type}
 
-async def generate_fashion_image(file, clothing_type):
-    image_bytes = await file.read()
-    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+**Estilo y calidad:**
+- Photorealistic, 8k, ultra detallado, vogue editorial style
+- Telas con física realista (draping, pliegues, brillos, caídas naturales)
+- Sombras y luces que coincidan perfectamente con la foto original
+- Alta costura, detalles premium, acabado profesional
 
-    prompt = f"Genera una imagen de una persona con el rostro proporcionado vistiendo un {clothing_type}."
+Genera una imagen espectacular lista para Instagram o revista de moda.
+"""
 
-    response = openai.images.generate(
-        model="gpt-image-1",
-        prompt=prompt,
-        image=encoded_image,
-        size="1024x1024"
-    )
-
-    image_base64 = response.data[0].b64_json
-    return {"image": image_base64}
->>>>>>> aaa090a72063f2df24c6e2b0bca1128a77da0f20
+    try:
+        response = await client.images.generate(
+            model="gpt-image-1",          # o "dall-e-3" si prefieres
+            prompt=prompt,
+            n=1,
+            size="1024x1024",             # o "1792x1024" para landscape
+            quality="hd",
+            response_format="b64_json"
+        )
+        
+        image_b64 = response.data[0].b64_json
+        
+        return {
+            "status": "success",
+            "image": image_b64,
+            "message": f"¡Listo! Tu {clothing_type}"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error en generación: {str(e)}"
+        }
