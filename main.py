@@ -3,22 +3,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from utils.openai_helper import generate_fashion_image
 from bot import router as bot_router
+from openai import OpenAI
 import requests
 import os
 
-# Cargar variables
+# Cargar variables de entorno
 load_dotenv()
 
-# Token Telegram
+# Variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Crear app
+# Cliente OpenAI
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Crear app FastAPI
 app = FastAPI(
     title="AppFred - Fashion Image Assistant",
-    version="1.0.0"
+    version="1.0.0",
+    description="Asistente IA de moda conectado con Telegram y OpenAI"
 )
 
-# CORS
+# Configuración CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,7 +41,7 @@ async def root():
         "message": "AppFred está funcionando 🚀"
     }
 
-# Endpoint principal IA
+# Endpoint principal IA imágenes
 @app.post("/generate")
 async def generate(
     file: UploadFile,
@@ -50,24 +56,67 @@ async def telegram_webhook(request: Request):
 
     data = await request.json()
 
+    print("Telegram update:", data)
+
     try:
-        message = data["message"]["text"]
-        chat_id = data["message"]["chat"]["id"]
 
-        response_text = f"Recibí tu mensaje: {message}"
+        # Verificar que exista mensaje
+        if "message" not in data:
+            return {"ok": True}
 
-        telegram_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        message_data = data["message"]
 
-        requests.post(
+        # Obtener chat ID
+        chat_id = message_data["chat"]["id"]
+
+        # Obtener texto usuario
+        user_message = message_data.get(
+            "text",
+            "Mensaje no compatible"
+        )
+
+        # Consulta OpenAI
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres AppFred, un asistente experto "
+                        "en moda, outfits, tendencias, colores "
+                        "y recomendaciones de estilo."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ],
+            max_tokens=300
+        )
+
+        # Respuesta IA
+        ai_response = completion.choices[0].message.content
+
+        # URL Telegram API
+        telegram_url = (
+            f"https://api.telegram.org/bot"
+            f"{TELEGRAM_BOT_TOKEN}/sendMessage"
+        )
+
+        # Enviar respuesta Telegram
+        telegram_response = requests.post(
             telegram_url,
             json={
                 "chat_id": chat_id,
-                "text": response_text
+                "text": ai_response
             }
         )
 
+        print("Telegram response:", telegram_response.text)
+
     except Exception as e:
-        print("Error Telegram:", e)
+        print("Error Telegram:", str(e))
 
     return {"ok": True}
 
