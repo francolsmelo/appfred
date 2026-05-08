@@ -1,20 +1,24 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from utils.openai_helper import generate_fashion_image
 from bot import router as bot_router
+import requests
+import os
 
-# Cargar variables de entorno
+# Cargar variables
 load_dotenv()
 
-# Crear aplicación FastAPI
+# Token Telegram
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+# Crear app
 app = FastAPI(
     title="AppFred - Fashion Image Assistant",
-    version="1.0.0",
-    description="API para generación de imágenes de moda con IA"
+    version="1.0.0"
 )
 
-# Configuración CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ruta raíz para healthcheck de Render
+# Ruta raíz
 @app.get("/")
 async def root():
     return {
@@ -31,17 +35,41 @@ async def root():
         "message": "AppFred está funcionando 🚀"
     }
 
-# Endpoint principal
+# Endpoint principal IA
 @app.post("/generate")
 async def generate(
     file: UploadFile,
     clothing_type: str = Form(...)
 ):
-    """
-    Genera imágenes de moda usando IA
-    """
     result = await generate_fashion_image(file, clothing_type)
     return result
 
-# Incluir rutas del bot de Telegram
+# Webhook Telegram
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+
+    data = await request.json()
+
+    try:
+        message = data["message"]["text"]
+        chat_id = data["message"]["chat"]["id"]
+
+        response_text = f"Recibí tu mensaje: {message}"
+
+        telegram_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+        requests.post(
+            telegram_url,
+            json={
+                "chat_id": chat_id,
+                "text": response_text
+            }
+        )
+
+    except Exception as e:
+        print("Error Telegram:", e)
+
+    return {"ok": True}
+
+# Router adicional
 app.include_router(bot_router)
